@@ -754,8 +754,10 @@ splunk_genai_observability/
 - ⬜ Accelerated data model (10-100x faster queries)
 - ⬜ CIM compliance
 - ⬜ Alerting templates
-- ⬜ Audit logging dashboard
-- ⬜ User activity tracking
+- ⬜ Prompt Analytics & Optimization
+- ⬜ User analytics & attribution
+- ⬜ Enhanced cost analytics
+- ⬜ SLA monitoring
 
 ### Version 3.0 (Future)
 - ⬜ LangChain auto-instrumentation
