@@ -112,7 +112,7 @@ Navigate to **GenAI Observability** app in Splunk and explore the dashboards!
 
 ```bash
 cd $SPLUNK_HOME/etc/apps/
-git clone https://github.com/kamalbisht/genai-observability-splunk.git splunk_genai_observability
+git clone https://github.com/rootiq-ai/splunk_genai_observability.git
 $SPLUNK_HOME/bin/splunk restart
 ```
 
