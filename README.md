@@ -47,7 +47,7 @@
 
 ---
 
-## ⚡ Quick Start
+## Quick Start
 
 ### 1. Install the App
 
@@ -99,7 +99,7 @@ Navigate to **GenAI Observability** app in Splunk and explore the dashboards!
 
 ---
 
-## 📦 Installation
+## Installation
 
 ### 1. Splunk App Installation
 
@@ -457,7 +457,7 @@ print(result)
 
 ---
 
-## 📚 Decorators Reference
+## Decorators Reference
 
 | Decorator | Purpose | Key Fields Captured |
 |-----------|---------|---------------------|
@@ -495,7 +495,7 @@ print(result)
 
 ---
 
-## 📊 Dashboards
+## Dashboards
 
 ### 1. Overview Dashboard
 High-level KPIs and trends for all GenAI operations.
@@ -524,7 +524,7 @@ Error tracking and debugging for failed LLM calls.
 
 ---
 
-## ⚙️ Configuration
+## Configuration
 
 ### Setup Options
 
@@ -571,7 +571,7 @@ setup_splunk_telemetry(
 
 ---
 
-## 🔍 Splunk Queries
+## Splunk Queries
 
 ### Basic Queries
 
@@ -635,7 +635,7 @@ index=genai_traces span_type="CHAIN"
 
 ---
 
-## 🔧 Troubleshooting
+## Troubleshooting
 
 ### No Data in Splunk
 
@@ -674,12 +674,12 @@ index=genai_traces span_type="CHAIN"
 Return the **full response object**, not just the text:
 
 ```python
-# ✅ Correct - returns full response
+#  Correct - returns full response
 @trace_llm(model_name="gpt-4o-mini", model_provider="openai")
 def chat(message: str):
     return client.chat.completions.create(...)
 
-# ❌ Wrong - loses token info
+#  Wrong - loses token info
 @trace_llm(model_name="gpt-4o-mini", model_provider="openai")
 def chat(message: str):
     response = client.chat.completions.create(...)
@@ -712,12 +712,12 @@ setup_splunk_telemetry(
 Ensure HEC token has access to the target index:
 ```
 Settings → Data Inputs → HTTP Event Collector → Your Token → Edit
-Allowed Indexes: genai_traces ✅
+Allowed Indexes: genai_traces 
 ```
 
 ---
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 splunk_genai_observability/
@@ -749,7 +749,7 @@ splunk_genai_observability/
 
 ---
 
-## 🗺️ Roadmap
+## Roadmap
 
 ### Version 1.0 (Current)
 - ✅ Basic dashboards
@@ -773,7 +773,7 @@ splunk_genai_observability/
 
 ---
 
-## 🤝 Contributing
+## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
 
@@ -785,7 +785,7 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 ---
 
-## 📄 License
+## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
