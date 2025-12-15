@@ -13,7 +13,7 @@
 
 ---
 
-## 🚀 Features
+## Features
 
 - **Real-time Monitoring** - Track LLM calls, RAG pipelines, and AI agents in real-time
 - **Token Analytics** - Monitor input/output tokens with automatic extraction
@@ -26,7 +26,7 @@
 
 ---
 
-## 📋 Table of Contents
+## Table of Contents
 
 - [Quick Start](#-quick-start)
 - [Installation](#-installation)
