@@ -107,24 +107,11 @@ Navigate to **GenAI Observability** app in Splunk and explore the dashboards!
 
 #### Option A: From Splunkbase (Recommended)
 
-1. Go to [Splunkbase](https://splunkbase.splunk.com/app/YOUR_APP_ID)
+1. Go to [Splunkbase](https://splunkbase.splunk.com/app/8308)
 2. Click **Download**
 3. Install via Splunk Web: **Apps → Manage Apps → Install app from file**
 
-#### Option B: Manual Installation
-
-```bash
-# Download the app
-wget https://github.com/kamalbisht/genai-observability-splunk/releases/latest/download/splunk_genai_observability.tar.gz
-
-# Extract to Splunk apps directory
-tar -xzf splunk_genai_observability.tar.gz -C $SPLUNK_HOME/etc/apps/
-
-# Restart Splunk
-$SPLUNK_HOME/bin/splunk restart
-```
-
-#### Option C: Clone from GitHub
+#### Option B: Clone from GitHub
 
 ```bash
 cd $SPLUNK_HOME/etc/apps/
@@ -188,7 +175,7 @@ Expected response:
 
 ---
 
-## 💻 Usage
+## Usage
 
 ### Basic Example
 
@@ -501,28 +488,34 @@ print(result)
 
 ### 1. Overview Dashboard
 High-level KPIs and trends for all GenAI operations.
+<img width="2480" height="1206" alt="image" src="https://github.com/user-attachments/assets/488c7206-9504-4dd6-b68e-0730222b4481" />
 
-![Overview Dashboard](docs/images/dashboard-overview.png)
 
 ### 2. Operations Center
 Real-time monitoring with auto-refresh for production systems.
-
-![Operations Center](docs/images/dashboard-operations.png)
+<img width="2484" height="1263" alt="image" src="https://github.com/user-attachments/assets/2c0ec336-a974-4c04-aa81-5be6cf4147d1" />
 
 ### 3. LLM Performance
 Deep dive into model-level performance metrics.
+<img width="2474" height="1275" alt="image" src="https://github.com/user-attachments/assets/fc7f45a8-23fc-4619-b7f7-2300b8d592b1" />
 
-![LLM Performance](docs/images/dashboard-llm.png)
 
-### 4. Cost Analysis
+### 4. RAG Analytics
+<img width="2484" height="1094" alt="image" src="https://github.com/user-attachments/assets/3c73e920-0ef5-4c98-ad43-f75a1908b5f9" />
+
+### 5. Agents & Tools
+<img width="2483" height="1188" alt="image" src="https://github.com/user-attachments/assets/88c7a58b-589f-4ac9-b48b-9020cc2f700d" />
+
+
+### 6. Cost Analysis
 Token usage and cost tracking by model, workflow, and time.
+<img width="2478" height="1248" alt="image" src="https://github.com/user-attachments/assets/5bf9c155-b893-43ee-b52c-a5d5446c4085" />
 
-![Cost Analysis](docs/images/dashboard-cost.png)
 
-### 5. Error Analysis
+### 7. Error Analysis
 Error tracking and debugging for failed LLM calls.
+<img width="2480" height="1257" alt="image" src="https://github.com/user-attachments/assets/bd6a5577-ee9c-46c4-a9e7-516721aac769" />
 
-![Error Analysis](docs/images/dashboard-errors.png)
 
 ---
 
