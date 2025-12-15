@@ -6,6 +6,8 @@
 [![Splunk 9.0+](https://img.shields.io/badge/Splunk-9.0+-orange.svg)](https://www.splunk.com/)
 
 **Comprehensive observability solution for LLM and GenAI applications.** Monitor token usage, latency, costs, and errors across OpenAI, Anthropic, and many more providers.
+<img width="2472" height="1245" alt="image" src="https://github.com/user-attachments/assets/2a620055-4239-4787-bca3-9f12aa79ecc7" />
+
 
 ![GenAI Observability Dashboard](docs/images/dashboard-overview.png)
 
