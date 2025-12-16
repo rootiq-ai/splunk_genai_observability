@@ -119,7 +119,6 @@ $SPLUNK_HOME/bin/splunk restart
 ### 2. Python SDK Installation
 
 ```bash
-# Basic installation
 pip install genai-telemetry-splunk
 ```
 
@@ -136,10 +135,10 @@ Name: genai_traces
 
 ```
 Settings → Data Inputs → HTTP Event Collector → Global Settings
-Enable: ✅
+Enable
 ```
 
-#### Step 3: Create HEC Token
+#### Step 3: Create HEC Token in Splunk
 
 ```
 Settings → Data Inputs → HTTP Event Collector → New Token
