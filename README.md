@@ -121,15 +121,6 @@ $SPLUNK_HOME/bin/splunk restart
 ```bash
 # Basic installation
 pip install genai-telemetry-splunk
-
-# With OpenAI support
-pip install genai-telemetry-splunk[openai]
-
-# With Anthropic support
-pip install genai-telemetry-splunk[anthropic]
-
-# With all integrations
-pip install genai-telemetry-splunk[all]
 ```
 
 ### 3. Configure HEC
