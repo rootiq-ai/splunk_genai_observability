@@ -724,7 +724,6 @@ splunk_genai_observability/
 │   └── default.meta                # Permissions
 ├── static/
 │   ├── appIcon.png                 # App icon (36x36)
-│   └── appIcon_2x.png              # App icon (72x72)
 ├── README.txt
 └── LICENSE
 ```
