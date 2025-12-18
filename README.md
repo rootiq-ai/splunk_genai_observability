@@ -106,7 +106,8 @@ setup_telemetry(
     workflow_name="my-chatbot",
     exporter="splunk",
     splunk_url="https://splunk.company.com:8088",
-    splunk_token="your-hec-token"
+    splunk_token="your-hec-token",
+    splunk_index="genai_traces"
 )
 
 @trace_llm(model_name="gpt-4o", model_provider="openai")
