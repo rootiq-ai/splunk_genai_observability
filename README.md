@@ -60,7 +60,7 @@ splunk restart
 ### 2. Install Python SDK
 
 ```bash
-pip install genai-telemetry-splunk
+pip install genai-telemetry
 ```
 
 ### 3. Instrument Your Code
@@ -78,7 +78,7 @@ pip install genai-telemetry-splunk
 
 Download and install from Splunkbase, or:
 ```bash
-tar -xzf genai_observability.tar.gz -C $SPLUNK_HOME/etc/apps/
+tar -xzf splunk_genai_observability.tar.gz -C $SPLUNK_HOME/etc/apps/
 splunk restart
 ```
 
