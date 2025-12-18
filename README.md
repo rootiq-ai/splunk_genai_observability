@@ -66,30 +66,66 @@ pip install genai-telemetry-splunk
 ### 3. Instrument Your Code
 
 ```python
-from genai_telemetry import setup_splunk_telemetry, trace_llm
-from openai import OpenAI
+## Prerequisites
 
-# Initialize
-setup_splunk_telemetry(
-    workflow_name="my-app",
-    splunk_hec_url="https://your-splunk:8088",
-    splunk_hec_token="your-token",
-    splunk_index="genai_traces"
+- Splunk Enterprise 9.0+ or Splunk Cloud
+- HEC (HTTP Event Collector) enabled
+- Python 3.8+ (for SDK)
+
+## Installation Steps
+
+### 1. Install the App
+
+Download and install from Splunkbase, or:
+```bash
+tar -xzf genai_observability.tar.gz -C $SPLUNK_HOME/etc/apps/
+splunk restart
+```
+
+### 2. Create Index
+
+Create a new index named `genai_traces`:
+Settings → Indexes → New Index
+Name: genai_traces
+
+### 3. Configure HEC Token
+Settings → Data Inputs → HTTP Event Collector → New Token
+Name: genai_traces_token
+Index: genai_traces
+Sourcetype: genai:trace
+
+### 4. Install Python SDK
+```bash
+pip install genai-telemetry
+```
+
+### 5. Configure Your Application
+```python
+from genai_telemetry import setup_telemetry, trace_llm
+setup_telemetry(
+    workflow_name="my-chatbot",
+    exporter="splunk",
+    splunk_url="https://splunk.company.com:8088",
+    splunk_token="your-hec-token"
 )
 
-client = OpenAI()
-
-# Add decorator
-@trace_llm(model_name="gpt-4o-mini", model_provider="openai")
-def chat(message: str):
-    return client.chat.completions.create(
-        model="gpt-4o-mini",
+@trace_llm(model_name="gpt-4o", model_provider="openai")
+def chat(message):
+    response = client.chat.completions.create(
+        model="gpt-4o",
         messages=[{"role": "user", "content": message}]
     )
+    return response.choices[0].message.content
 
-# Use normally
-response = chat("What is Splunk?")
-print(response.choices[0].message.content)
+# Telemetry is automatic!
+answer = chat("What is the capital of France?")
+
+```
+
+## Verify Installation
+
+Run this search to confirm data is flowing:
+index=genai_traces | head 10
 ```
 
 ### 4. View Dashboards
