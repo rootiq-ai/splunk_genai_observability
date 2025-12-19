@@ -2,7 +2,7 @@
 
 [![Splunkbase](https://img.shields.io/badge/Splunkbase-Published-green)](https://splunkbase.splunk.com/app/YOUR_APP_ID)
 [![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/Apache)
 [![Splunk 9.0+](https://img.shields.io/badge/Splunk-9.0+-orange.svg)](https://www.splunk.com/)
 
 **Comprehensive observability solution for LLM and GenAI applications.** Monitor token usage, latency, costs, and errors across OpenAI, Anthropic, and many more providers.
