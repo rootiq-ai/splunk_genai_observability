@@ -21,6 +21,7 @@ pip install genai-telemetry openai
 # =============================================================================
 # SETUP (Do this ONCE at app startup)
 # =============================================================================
+from genai_telemetry import setup_telemetry, trace_llm
 
 from genai_telemetry import (
     setup_telemetry,
