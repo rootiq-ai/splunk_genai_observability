@@ -294,21 +294,18 @@ import json
 
 @trace_tool(tool_name="get_weather")
 def get_weather(city: str) -> dict:
-    # Your actual weather API call
     return {"city": city, "temperature": 72, "condition": "sunny"}
 
 @trace_tool(tool_name="search_database")
 def search_database(query: str) -> list:
-    # Your actual database search
     return [{"id": 1, "result": "Sample result"}]
 
 @trace_tool(tool_name="calculate")
 def calculate(expression: str) -> float:
-    # Your calculation logic
     return eval(expression)
 
 @trace_llm(model_name="gpt-4o", model_provider="openai")
-def chat_with_tools(message: str) -> str:
+def chat_with_tools(message: str):
     """Chat with function calling - all traced to Splunk."""
     
     tools = [
@@ -368,21 +365,46 @@ def chat_with_tools(message: str) -> str:
             model="gpt-4o",
             messages=messages
         )
-        return final_response.choices[0].message.content
+        return final_response
     
-    return response.choices[0].message.content
+    return response  
 
 # Usage:
-answer = chat_with_tools("What's the weather in Paris?")
-
+result = chat_with_tools("What's the weather in Paris?")
+answer = result.choices[0].message.content
+print(answer)
 # Tool span sent to Splunk:
 """
-{
-    "span_type": "TOOL",
-    "name": "get_weather",
-    "tool_name": "get_weather",
-    "duration_ms": 123.45
-}
+ {
+   duration_ms: 1181.52
+   input_tokens: 54
+   is_error: 0
+   model_name: gpt-4o
+   model_provider: openai
+   name: chat_with_tools
+   output_tokens: 16
+   parent_span_id: null
+   span_id: f05c43b7612947ed
+   span_type: LLM
+   status: OK
+   timestamp: 2025-12-21T23:21:57.746785+00:00
+   total_tokens: 70
+   trace_id: ac0c4a81f6184670a023ead6437466b0
+   workflow_name: test
+} 
+ {
+   duration_ms: 0.01
+   is_error: 0
+   name: get_weather
+   parent_span_id: null
+   span_id: 000bea51cc054d10
+   span_type: TOOL
+   status: OK
+   timestamp: 2025-12-21T23:21:57.257066+00:00
+   tool_name: get_weather
+   trace_id: ac0c4a81f6184670a023ead6437466b0
+   workflow_name: test
+} 
 """
 
 
