@@ -411,6 +411,7 @@ print(answer)
 # =============================================================================
 # EXAMPLE 7: MULTI-STEP AGENT
 # =============================================================================
+#  Define chat_with_system, get_embedding, search_documents, and rag_query before the research_agent function.
 
 @trace_agent(agent_name="research-agent", agent_type="ReAct")
 def research_agent(question: str) -> str:
@@ -453,34 +454,43 @@ answer = research_agent("What are the latest AI trends?")
 # =============================================================================
 
 @trace_llm(model_name="gpt-4o", model_provider="openai")
-def chat_gpt4o(message: str) -> str:
+def chat_gpt4o(message: str):
     response = client.chat.completions.create(
         model="gpt-4o",
         messages=[{"role": "user", "content": message}]
     )
-    return response.choices[0].message.content
+    return response  # Return FULL response
 
 @trace_llm(model_name="gpt-4o-mini", model_provider="openai")
-def chat_gpt4o_mini(message: str) -> str:
+def chat_gpt4o_mini(message: str):
     response = client.chat.completions.create(
         model="gpt-4o-mini",
         messages=[{"role": "user", "content": message}]
     )
-    return response.choices[0].message.content
+    return response  # Return FULL response
 
 @trace_llm(model_name="gpt-4-turbo", model_provider="openai")
-def chat_gpt4_turbo(message: str) -> str:
+def chat_gpt4_turbo(message: str):
     response = client.chat.completions.create(
         model="gpt-4-turbo",
         messages=[{"role": "user", "content": message}]
     )
-    return response.choices[0].message.content
+    return response  # Return FULL response
 
 # Usage - compare models:
 question = "Explain quantum computing"
-answer1 = chat_gpt4o(question)
-answer2 = chat_gpt4o_mini(question)
-answer3 = chat_gpt4_turbo(question)
+result1 = chat_gpt4o(question)
+result2 = chat_gpt4o_mini(question)
+result3 = chat_gpt4_turbo(question)
+
+# Extract content after
+answer1 = result1.choices[0].message.content
+answer2 = result2.choices[0].message.content
+answer3 = result3.choices[0].message.content
+
+print(answer1)
+print(answer2)
+print(answer3)
 
 # Each sends separate data to Splunk
 # Dashboard can compare: latency, tokens, cost by model
@@ -566,13 +576,24 @@ track_custom_event(
 # EXAMPLE 11: BATCH PROCESSING
 # =============================================================================
 
+# Define chat function FIRST
+@trace_llm(model_name="gpt-4o", model_provider="openai")
+def chat(message):
+    response = client.chat.completions.create(
+        model="gpt-4o",
+        messages=[{"role": "user", "content": message}]
+    )
+    return response  # Return FULL response
+
+# Then define batch processor
 @trace_chain(name="batch-processor")
 def process_batch(questions: list) -> list:
     """Process multiple questions - entire batch traced."""
     results = []
     
     for question in questions:
-        answer = chat(question)
+        result = chat(question)
+        answer = result.choices[0].message.content  # Extract content
         results.append({"question": question, "answer": answer})
     
     return results
@@ -580,6 +601,12 @@ def process_batch(questions: list) -> list:
 # Usage:
 questions = ["What is Python?", "What is JavaScript?", "What is Rust?"]
 results = process_batch(questions)
+
+# Print results
+for r in results:
+    print(f"Q: {r['question']}")
+    print(f"A: {r['answer'][:100]}...")
+    print("---")
 
 # Sends 1 CHAIN span + 3 LLM spans to Splunk
 
@@ -616,7 +643,7 @@ def create_tenant_chat(tenant_id: str):
     """Create chat function for specific tenant."""
     
     @trace_llm(model_name="gpt-4o", model_provider="openai")
-    def tenant_chat(message: str) -> str:
+    def tenant_chat(message: str):
         # Add tenant context
         telemetry = get_telemetry()
         
@@ -635,7 +662,7 @@ def create_tenant_chat(tenant_id: str):
             output_tokens=response.usage.completion_tokens
         )
         
-        return response.choices[0].message.content
+        return response  # Return FULL response
     
     return tenant_chat
 
@@ -643,8 +670,15 @@ def create_tenant_chat(tenant_id: str):
 tenant_a_chat = create_tenant_chat("tenant_A")
 tenant_b_chat = create_tenant_chat("tenant_B")
 
-answer_a = tenant_a_chat("Hello")
-answer_b = tenant_b_chat("Hello")
+result_a = tenant_a_chat("Hello")
+result_b = tenant_b_chat("Hello")
+
+# Extract content after
+answer_a = result_a.choices[0].message.content
+answer_b = result_b.choices[0].message.content
+
+print(f"Tenant A: {answer_a}")
+print(f"Tenant B: {answer_b}")
 
 
 # =============================================================================
@@ -660,15 +694,20 @@ class ConversationTracker:
         self.telemetry = get_telemetry()
     
     @trace_llm(model_name="gpt-4o", model_provider="openai")
+    def _call_llm(self, messages):
+        """Internal LLM call - returns full response for token capture."""
+        response = client.chat.completions.create(
+            model="gpt-4o",
+            messages=messages
+        )
+        return response  # Return FULL response
+    
     def send_message(self, user_message: str) -> str:
         # Add user message
         self.messages.append({"role": "user", "content": user_message})
         
         # Call OpenAI with full history
-        response = client.chat.completions.create(
-            model="gpt-4o",
-            messages=self.messages
-        )
+        response = self._call_llm(self.messages)
         
         assistant_message = response.choices[0].message.content
         
@@ -694,12 +733,14 @@ answer1 = conv.send_message("Hello")
 answer2 = conv.send_message("Tell me more")
 answer3 = conv.send_message("Thanks!")
 
+print(answer1)
+print(answer2)
+print(answer3)
 
 # =============================================================================
 # EXAMPLE 15: COST TRACKING
 # =============================================================================
 
-# Pricing per 1M tokens (update as needed)
 PRICING = {
     "gpt-4o": {"input": 5.00, "output": 15.00},
     "gpt-4o-mini": {"input": 0.15, "output": 0.60},
@@ -707,14 +748,21 @@ PRICING = {
     "text-embedding-3-small": {"input": 0.02, "output": 0},
 }
 
-def chat_with_cost_tracking(message: str, model: str = "gpt-4o") -> dict:
-    """Track cost and send to Splunk."""
-    telemetry = get_telemetry()
-    
+@trace_llm(model_name="gpt-4o", model_provider="openai")
+def _call_llm(message: str, model: str):
+    """Internal LLM call - returns full response."""
     response = client.chat.completions.create(
         model=model,
         messages=[{"role": "user", "content": message}]
     )
+    return response  # Return FULL response
+
+def chat_with_cost_tracking(message: str, model: str = "gpt-4o") -> dict:
+    """Track cost and send to Splunk."""
+    telemetry = get_telemetry()
+    
+    # Call LLM (traced by decorator)
+    response = _call_llm(message, model)
     
     # Calculate cost
     input_tokens = response.usage.prompt_tokens
@@ -725,10 +773,10 @@ def chat_with_cost_tracking(message: str, model: str = "gpt-4o") -> dict:
     output_cost = (output_tokens / 1_000_000) * pricing["output"]
     total_cost = input_cost + output_cost
     
-    # Send to Splunk
+    # Send additional cost span to Splunk
     telemetry.send_span(
-        span_type="LLM_WITH_COST",
-        name="chat_with_cost",
+        span_type="LLM_COST",
+        name="chat_cost_tracking",
         model_name=model,
         model_provider="openai",
         input_tokens=input_tokens,
@@ -745,6 +793,8 @@ def chat_with_cost_tracking(message: str, model: str = "gpt-4o") -> dict:
 
 # Usage:
 result = chat_with_cost_tracking("What is AI?", model="gpt-4o")
+print(f"Answer: {result['answer'][:100]}...")
+print(f"Cost: ${result['cost_usd']:.6f}")
 
 
 # =============================================================================
