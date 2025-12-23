@@ -1,0 +1,316 @@
+<form version="1.1" theme="dark">
+  <label>Tools Monitoring</label>
+  <description>Monitor tool/function calls, execution times, and success rates</description>
+  <!-- Row 1: Key Metrics -->
+  <!-- Row 2: Tool Calls Over Time -->
+  <!-- Row 3: Tool Usage Distribution -->
+  <!-- Row 4: Tool Performance -->
+  <!-- Row 5: Tool Duration Distribution -->
+  <!-- Row 6: Tool Details Table -->
+  <!-- Row 7: Tool Errors -->
+  <!-- Row 8: Tool Statistics Table -->
+  <!-- Row 9: Tool Heatmap -->
+  <fieldset submitButton="false">
+    <input type="time" token="time">
+      <label></label>
+      <default>
+        <earliest>-24h@h</earliest>
+        <latest>now</latest>
+      </default>
+    </input>
+  </fieldset>
+  <row>
+    <panel>
+      <single>
+        <title>Total Tool Calls</title>
+        <search>
+          <query>index=genai_traces span_type="TOOL"
+| stats count</query>
+          <earliest>$time.earliest$</earliest>
+          <latest>$time.latest$</latest>
+        </search>
+        <option name="colorMode">block</option>
+        <option name="drilldown">none</option>
+        <option name="rangeColors">["0x53a051","0x006d9c","0xf8be34","0xf1813f","0xdc4e41"]</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="useColors">1</option>
+      </single>
+    </panel>
+    <panel>
+      <single>
+        <title>Unique Tools</title>
+        <search>
+          <query>index=genai_traces span_type="TOOL"
+| stats dc(tool_name) as unique_tools</query>
+          <earliest>$time.earliest$</earliest>
+          <latest>$time.latest$</latest>
+        </search>
+        <option name="colorMode">block</option>
+        <option name="drilldown">none</option>
+        <option name="rangeColors">["0x006d9c"]</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="useColors">1</option>
+      </single>
+    </panel>
+    <panel>
+      <single>
+        <title>Avg Tool Duration (ms)</title>
+        <search>
+          <query>index=genai_traces span_type="TOOL"
+| stats avg(duration_ms) as avg_duration
+| eval avg_duration=round(avg_duration, 2)</query>
+          <earliest>$time.earliest$</earliest>
+          <latest>$time.latest$</latest>
+        </search>
+        <option name="colorMode">block</option>
+        <option name="drilldown">none</option>
+        <option name="rangeColors">["0x53a051","0xf8be34","0xdc4e41"]</option>
+        <option name="rangeValues">[100,500]</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="useColors">1</option>
+      </single>
+    </panel>
+    <panel>
+      <single>
+        <title>Tool Error Rate</title>
+        <search>
+          <query>index=genai_traces span_type="TOOL"
+| stats count(eval(is_error=1)) as errors, count as total
+| eval error_rate=round((errors/total)*100, 2)
+| eval error_rate=error_rate."%"</query>
+          <earliest>$time.earliest$</earliest>
+          <latest>$time.latest$</latest>
+        </search>
+        <option name="colorMode">block</option>
+        <option name="drilldown">none</option>
+        <option name="rangeColors">["0x53a051","0xf8be34","0xdc4e41"]</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="useColors">1</option>
+      </single>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <chart>
+        <title>Tool Calls Over Time</title>
+        <search>
+          <query>index=genai_traces span_type="TOOL"
+| timechart span=1h count by tool_name</query>
+          <earliest>$time.earliest$</earliest>
+          <latest>$time.latest$</latest>
+        </search>
+        <option name="charting.chart">area</option>
+        <option name="charting.chart.stackMode">stacked</option>
+        <option name="charting.drilldown">none</option>
+        <option name="charting.legend.placement">bottom</option>
+        <option name="refresh.display">progressbar</option>
+      </chart>
+    </panel>
+    <panel>
+      <chart>
+        <title>Tool Usage Distribution</title>
+        <search>
+          <query>index=genai_traces span_type="TOOL"
+| stats count by tool_name
+| sort -count</query>
+          <earliest>$time.earliest$</earliest>
+          <latest>$time.latest$</latest>
+        </search>
+        <option name="charting.chart">pie</option>
+        <option name="charting.drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </chart>
+    </panel>
+    <panel>
+      <chart>
+        <title>Tool Calls by Workflow</title>
+        <search>
+          <query>index=genai_traces span_type="TOOL"
+| stats count by workflow_name
+| sort -count</query>
+          <earliest>$time.earliest$</earliest>
+          <latest>$time.latest$</latest>
+        </search>
+        <option name="charting.chart">pie</option>
+        <option name="charting.drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </chart>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <chart>
+        <title>Tool Performance Comparison</title>
+        <search>
+          <query>index=genai_traces span_type="TOOL"
+| stats count as calls, avg(duration_ms) as avg_duration, max(duration_ms) as max_duration, count(eval(is_error=1)) as errors by tool_name
+| eval avg_duration=round(avg_duration, 2)
+| eval max_duration=round(max_duration, 2)
+| eval success_rate=round(((calls-errors)/calls)*100, 2)
+| sort -calls</query>
+          <earliest>$time.earliest$</earliest>
+          <latest>$time.latest$</latest>
+        </search>
+        <option name="charting.chart">bar</option>
+        <option name="charting.drilldown">none</option>
+        <option name="charting.legend.placement">bottom</option>
+        <option name="refresh.display">progressbar</option>
+      </chart>
+    </panel>
+    <panel>
+      <chart>
+        <title>Avg Duration by Tool (ms)</title>
+        <search>
+          <query>index=genai_traces span_type="TOOL"
+| stats avg(duration_ms) as avg_duration by tool_name
+| eval avg_duration=round(avg_duration, 2)
+| sort -avg_duration</query>
+          <earliest>$time.earliest$</earliest>
+          <latest>$time.latest$</latest>
+        </search>
+        <option name="charting.chart">bar</option>
+        <option name="charting.drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </chart>
+    </panel>
+    <panel>
+      <chart>
+        <title>Tool Duration Distribution (ms)</title>
+        <search>
+          <query>index=genai_traces span_type="TOOL"
+| eval duration_bucket=case(
+    duration_ms&lt;10, "0-10ms",
+    duration_ms&lt;50, "10-50ms",
+    duration_ms&lt;100, "50-100ms",
+    duration_ms&lt;500, "100-500ms",
+    duration_ms&lt;1000, "500ms-1s",
+    1=1, "1s+"
+)
+| stats count by duration_bucket
+| sort duration_bucket</query>
+          <earliest>$time.earliest$</earliest>
+          <latest>$time.latest$</latest>
+        </search>
+        <option name="charting.chart">column</option>
+        <option name="charting.drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </chart>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <chart>
+        <title>Tool Success vs Failure</title>
+        <search>
+          <query>index=genai_traces span_type="TOOL"
+| eval result=if(is_error=1, "Failed", "Success")
+| stats count by tool_name, result
+| sort -count</query>
+          <earliest>-24h@h</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="charting.chart">bar</option>
+        <option name="charting.chart.stackMode">stacked</option>
+        <option name="charting.drilldown">none</option>
+        <option name="charting.legend.placement">bottom</option>
+      </chart>
+    </panel>
+    <panel>
+      <table>
+        <title>Recent Tool Calls</title>
+        <search>
+          <query>index=genai_traces span_type="TOOL"
+| table timestamp, tool_name, duration_ms, status, is_error, trace_id, workflow_name
+| sort -timestamp
+| head 100
+| eval duration_ms=round(duration_ms, 2)
+| rename timestamp as "Time", tool_name as "Tool", duration_ms as "Duration (ms)", status as "Status", is_error as "Error", trace_id as "Trace ID", workflow_name as "Workflow"</query>
+          <earliest>$time.earliest$</earliest>
+          <latest>$time.latest$</latest>
+        </search>
+        <option name="count">20</option>
+        <option name="drilldown">cell</option>
+        <option name="refresh.display">progressbar</option>
+      </table>
+    </panel>
+    <panel>
+      <chart>
+        <title>Tool Errors Over Time</title>
+        <search>
+          <query>index=genai_traces span_type="TOOL" is_error=1
+| timechart span=1h count by tool_name</query>
+          <earliest>$time.earliest$</earliest>
+          <latest>$time.latest$</latest>
+        </search>
+        <option name="charting.chart">line</option>
+        <option name="charting.drilldown">none</option>
+        <option name="charting.legend.placement">bottom</option>
+        <option name="refresh.display">progressbar</option>
+      </chart>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <table>
+        <title>Recent Tool Errors</title>
+        <search>
+          <query>index=genai_traces span_type="TOOL" is_error=1
+| table timestamp, tool_name, error_message, error_type, trace_id
+| sort -timestamp
+| head 50
+| rename timestamp as "Time", tool_name as "Tool", error_message as "Error Message", error_type as "Error Type", trace_id as "Trace ID"</query>
+          <earliest>$time.earliest$</earliest>
+          <latest>$time.latest$</latest>
+        </search>
+        <option name="count">10</option>
+        <option name="drilldown">cell</option>
+        <option name="refresh.display">progressbar</option>
+      </table>
+    </panel>
+    <panel>
+      <chart>
+        <title>Tool Usage Heatmap (by Hour)</title>
+        <search>
+          <query>index=genai_traces span_type="TOOL"
+| eval hour=strftime(_time, "%H")
+| stats count by tool_name, hour
+| sort hour</query>
+          <earliest>$time.earliest$</earliest>
+          <latest>$time.latest$</latest>
+        </search>
+        <option name="charting.chart">column</option>
+        <option name="charting.chart.stackMode">stacked</option>
+        <option name="charting.drilldown">none</option>
+        <option name="charting.legend.placement">bottom</option>
+        <option name="refresh.display">progressbar</option>
+      </chart>
+    </panel>
+    <panel>
+      <table>
+        <title>Tool Statistics Summary</title>
+        <search>
+          <query>index=genai_traces span_type="TOOL"
+| stats count as total_calls, 
+        avg(duration_ms) as avg_duration, 
+        min(duration_ms) as min_duration, 
+        max(duration_ms) as max_duration, 
+        stdev(duration_ms) as std_duration,
+        count(eval(is_error=1)) as errors 
+        by tool_name
+| eval avg_duration=round(avg_duration, 2)
+| eval min_duration=round(min_duration, 2)
+| eval max_duration=round(max_duration, 2)
+| eval std_duration=round(std_duration, 2)
+| eval success_rate=round(((total_calls-errors)/total_calls)*100, 2)."%"
+| sort -total_calls
+| rename tool_name as "Tool", total_calls as "Total Calls", avg_duration as "Avg (ms)", min_duration as "Min (ms)", max_duration as "Max (ms)", std_duration as "Std Dev", errors as "Errors", success_rate as "Success Rate"</query>
+          <earliest>$time.earliest$</earliest>
+          <latest>$time.latest$</latest>
+        </search>
+        <option name="count">20</option>
+        <option name="drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </table>
+    </panel>
+  </row>
+</form>
