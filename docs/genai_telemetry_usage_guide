@@ -52,15 +52,16 @@ client = OpenAI(api_key="your-openai-api-key")
 # =============================================================================
 
 @trace_llm(model_name="gpt-4o", model_provider="openai")
-def chat(message: str) -> str:
+def chat(message):
     response = client.chat.completions.create(
         model="gpt-4o",
         messages=[{"role": "user", "content": message}]
     )
-    return response.choices[0].message.content
+    return response  # Return FULL response
 
-# Usage:
-answer = chat("What is AI?")
+# Extract content AFTER the decorated function
+answer = chat("Say hello")
+print(answer.choices[0].message.content)
 
 # Data AUTOMATICALLY sent to Splunk:
 """
@@ -87,7 +88,7 @@ answer = chat("What is AI?")
 # =============================================================================
 
 @trace_llm(model_name="gpt-4o", model_provider="openai")
-def chat_with_system(user_message: str, system_prompt: str) -> str:
+def chat_with_system(user_message: str, system_prompt: str):
     response = client.chat.completions.create(
         model="gpt-4o",
         messages=[
@@ -97,39 +98,69 @@ def chat_with_system(user_message: str, system_prompt: str) -> str:
         temperature=0.7,
         max_tokens=500
     )
-    return response.choices[0].message.content
+    return response  # Return FULL response, not just content
 
 # Usage:
-answer = chat_with_system(
+result = chat_with_system(
     user_message="Explain quantum computing",
     system_prompt="You are a physics professor."
 )
+answer = result.choices[0].message.content
 
+# Data sent to Splunk:
+"""
+ {
+   duration_ms: 5322.7
+   input_tokens: 20
+   is_error: 0
+   model_name: gpt-4o
+   model_provider: openai
+   name: chat_with_system
+   output_tokens: 463
+   parent_span_id: null
+   span_id: f4eac0c4hb0b347a3
+   span_type: LLM
+   status: OK
+   timestamp: 2025-12-21T22:48:44.941126+00:00
+   total_tokens: 483
+   trace_id: 0d979129ac9e4cedb370b3360691ce39
+   workflow_name: my-chatbot
+} 
+"""
 
 # =============================================================================
 # EXAMPLE 3: EMBEDDINGS
 # =============================================================================
 
 @trace_embedding(model="text-embedding-3-small")
-def get_embedding(text: str) -> list:
+def get_embedding(text: str):
     response = client.embeddings.create(
         model="text-embedding-3-small",
         input=text
     )
-    return response.data[0].embedding
+    return response  # Return FULL response, not just embedding
 
 # Usage:
-embedding = get_embedding("Hello world")
+result = get_embedding("Hello world")
+embedding = result.data[0].embedding
 
 # Data sent to Splunk:
 """
-{
-    "span_type": "EMBEDDING",
-    "name": "get_embedding",
-    "embedding_model": "text-embedding-3-small",
-    "duration_ms": 89.23,
-    "workflow_name": "production-chatbot"
-}
+
+ {
+   duration_ms: 446.33
+   embedding_model: text-embedding-3-small
+   input_tokens: 2
+   is_error: 0
+   name: get_embedding
+   parent_span_id: null
+   span_id: e9e59404ce7a4cea
+   span_type: EMBEDDING
+   status: OK
+   timestamp: 2025-12-21T22:56:12.749511+00:00
+   trace_id: fecc29b7c9124f47af6aecde769ff61c
+   workflow_name: my-chatbot
+} 
 """
 
 
@@ -171,8 +202,24 @@ docs = search_documents([0.1, 0.2, 0.3], top_k=3)
 # EXAMPLE 5: COMPLETE RAG PIPELINE
 # =============================================================================
 
+@trace_embedding(model="text-embedding-3-small")
+def get_embedding(text: str):
+    response = client.embeddings.create(
+        model="text-embedding-3-small",
+        input=text
+    )
+    return response
+
+@trace_retrieval(vector_store="pinecone", embedding_model="text-embedding-3-small")
+def search_documents(query_embedding: list, top_k: int = 5) -> list:
+    return [
+        {"id": "doc1", "text": "Document 1 content", "score": 0.95},
+        {"id": "doc2", "text": "Document 2 content", "score": 0.87},
+        {"id": "doc3", "text": "Document 3 content", "score": 0.82},
+    ]
+
 @trace_llm(model_name="gpt-4o", model_provider="openai")
-def generate_with_context(context: str, question: str) -> str:
+def generate_with_context(context: str, question: str):
     response = client.chat.completions.create(
         model="gpt-4o",
         messages=[
@@ -180,30 +227,25 @@ def generate_with_context(context: str, question: str) -> str:
             {"role": "user", "content": question}
         ]
     )
-    return response.choices[0].message.content
-
+    return response
 
 @trace_chain(name="rag-pipeline")
 def rag_query(question: str) -> str:
-    """Complete RAG pipeline - all steps traced to Splunk."""
+    result = get_embedding(question)
+    query_embedding = result.data[0].embedding
     
-    # Step 1: Embed the question
-    query_embedding = get_embedding(question)
-    
-    # Step 2: Search for relevant documents
     docs = search_documents(query_embedding, top_k=5)
     
-    # Step 3: Build context from documents
     context = "\n".join([doc["text"] for doc in docs])
     
-    # Step 4: Generate answer using LLM
-    answer = generate_with_context(context, question)
+    result = generate_with_context(context, question)
+    answer = result.choices[0].message.content
     
     return answer
 
 # Usage:
 answer = rag_query("What is machine learning?")
-
+print(answer)
 # 4 Spans sent to Splunk:
 """
 Span 1 (Parent - CHAIN):
@@ -252,21 +294,18 @@ import json
 
 @trace_tool(tool_name="get_weather")
 def get_weather(city: str) -> dict:
-    # Your actual weather API call
     return {"city": city, "temperature": 72, "condition": "sunny"}
 
 @trace_tool(tool_name="search_database")
 def search_database(query: str) -> list:
-    # Your actual database search
     return [{"id": 1, "result": "Sample result"}]
 
 @trace_tool(tool_name="calculate")
 def calculate(expression: str) -> float:
-    # Your calculation logic
     return eval(expression)
 
 @trace_llm(model_name="gpt-4o", model_provider="openai")
-def chat_with_tools(message: str) -> str:
+def chat_with_tools(message: str):
     """Chat with function calling - all traced to Splunk."""
     
     tools = [
@@ -326,27 +365,53 @@ def chat_with_tools(message: str) -> str:
             model="gpt-4o",
             messages=messages
         )
-        return final_response.choices[0].message.content
+        return final_response
     
-    return response.choices[0].message.content
+    return response  
 
 # Usage:
-answer = chat_with_tools("What's the weather in Paris?")
-
+result = chat_with_tools("What's the weather in Paris?")
+answer = result.choices[0].message.content
+print(answer)
 # Tool span sent to Splunk:
 """
-{
-    "span_type": "TOOL",
-    "name": "get_weather",
-    "tool_name": "get_weather",
-    "duration_ms": 123.45
-}
+ {
+   duration_ms: 1181.52
+   input_tokens: 54
+   is_error: 0
+   model_name: gpt-4o
+   model_provider: openai
+   name: chat_with_tools
+   output_tokens: 16
+   parent_span_id: null
+   span_id: f05c43b7612947ed
+   span_type: LLM
+   status: OK
+   timestamp: 2025-12-21T23:21:57.746785+00:00
+   total_tokens: 70
+   trace_id: ac0c4a81f6184670a023ead6437466b0
+   workflow_name: test
+} 
+ {
+   duration_ms: 0.01
+   is_error: 0
+   name: get_weather
+   parent_span_id: null
+   span_id: 000bea51cc054d10
+   span_type: TOOL
+   status: OK
+   timestamp: 2025-12-21T23:21:57.257066+00:00
+   tool_name: get_weather
+   trace_id: ac0c4a81f6184670a023ead6437466b0
+   workflow_name: test
+} 
 """
 
 
 # =============================================================================
 # EXAMPLE 7: MULTI-STEP AGENT
 # =============================================================================
+#  Define chat_with_system, get_embedding, search_documents, and rag_query before the research_agent function.
 
 @trace_agent(agent_name="research-agent", agent_type="ReAct")
 def research_agent(question: str) -> str:
@@ -389,34 +454,43 @@ answer = research_agent("What are the latest AI trends?")
 # =============================================================================
 
 @trace_llm(model_name="gpt-4o", model_provider="openai")
-def chat_gpt4o(message: str) -> str:
+def chat_gpt4o(message: str):
     response = client.chat.completions.create(
         model="gpt-4o",
         messages=[{"role": "user", "content": message}]
     )
-    return response.choices[0].message.content
+    return response  # Return FULL response
 
 @trace_llm(model_name="gpt-4o-mini", model_provider="openai")
-def chat_gpt4o_mini(message: str) -> str:
+def chat_gpt4o_mini(message: str):
     response = client.chat.completions.create(
         model="gpt-4o-mini",
         messages=[{"role": "user", "content": message}]
     )
-    return response.choices[0].message.content
+    return response  # Return FULL response
 
 @trace_llm(model_name="gpt-4-turbo", model_provider="openai")
-def chat_gpt4_turbo(message: str) -> str:
+def chat_gpt4_turbo(message: str):
     response = client.chat.completions.create(
         model="gpt-4-turbo",
         messages=[{"role": "user", "content": message}]
     )
-    return response.choices[0].message.content
+    return response  # Return FULL response
 
 # Usage - compare models:
 question = "Explain quantum computing"
-answer1 = chat_gpt4o(question)
-answer2 = chat_gpt4o_mini(question)
-answer3 = chat_gpt4_turbo(question)
+result1 = chat_gpt4o(question)
+result2 = chat_gpt4o_mini(question)
+result3 = chat_gpt4_turbo(question)
+
+# Extract content after
+answer1 = result1.choices[0].message.content
+answer2 = result2.choices[0].message.content
+answer3 = result3.choices[0].message.content
+
+print(answer1)
+print(answer2)
+print(answer3)
 
 # Each sends separate data to Splunk
 # Dashboard can compare: latency, tokens, cost by model
@@ -502,13 +576,24 @@ track_custom_event(
 # EXAMPLE 11: BATCH PROCESSING
 # =============================================================================
 
+# Define chat function FIRST
+@trace_llm(model_name="gpt-4o", model_provider="openai")
+def chat(message):
+    response = client.chat.completions.create(
+        model="gpt-4o",
+        messages=[{"role": "user", "content": message}]
+    )
+    return response  # Return FULL response
+
+# Then define batch processor
 @trace_chain(name="batch-processor")
 def process_batch(questions: list) -> list:
     """Process multiple questions - entire batch traced."""
     results = []
     
     for question in questions:
-        answer = chat(question)
+        result = chat(question)
+        answer = result.choices[0].message.content  # Extract content
         results.append({"question": question, "answer": answer})
     
     return results
@@ -516,6 +601,12 @@ def process_batch(questions: list) -> list:
 # Usage:
 questions = ["What is Python?", "What is JavaScript?", "What is Rust?"]
 results = process_batch(questions)
+
+# Print results
+for r in results:
+    print(f"Q: {r['question']}")
+    print(f"A: {r['answer'][:100]}...")
+    print("---")
 
 # Sends 1 CHAIN span + 3 LLM spans to Splunk
 
@@ -552,7 +643,7 @@ def create_tenant_chat(tenant_id: str):
     """Create chat function for specific tenant."""
     
     @trace_llm(model_name="gpt-4o", model_provider="openai")
-    def tenant_chat(message: str) -> str:
+    def tenant_chat(message: str):
         # Add tenant context
         telemetry = get_telemetry()
         
@@ -571,7 +662,7 @@ def create_tenant_chat(tenant_id: str):
             output_tokens=response.usage.completion_tokens
         )
         
-        return response.choices[0].message.content
+        return response  # Return FULL response
     
     return tenant_chat
 
@@ -579,8 +670,15 @@ def create_tenant_chat(tenant_id: str):
 tenant_a_chat = create_tenant_chat("tenant_A")
 tenant_b_chat = create_tenant_chat("tenant_B")
 
-answer_a = tenant_a_chat("Hello")
-answer_b = tenant_b_chat("Hello")
+result_a = tenant_a_chat("Hello")
+result_b = tenant_b_chat("Hello")
+
+# Extract content after
+answer_a = result_a.choices[0].message.content
+answer_b = result_b.choices[0].message.content
+
+print(f"Tenant A: {answer_a}")
+print(f"Tenant B: {answer_b}")
 
 
 # =============================================================================
@@ -596,15 +694,20 @@ class ConversationTracker:
         self.telemetry = get_telemetry()
     
     @trace_llm(model_name="gpt-4o", model_provider="openai")
+    def _call_llm(self, messages):
+        """Internal LLM call - returns full response for token capture."""
+        response = client.chat.completions.create(
+            model="gpt-4o",
+            messages=messages
+        )
+        return response  # Return FULL response
+    
     def send_message(self, user_message: str) -> str:
         # Add user message
         self.messages.append({"role": "user", "content": user_message})
         
         # Call OpenAI with full history
-        response = client.chat.completions.create(
-            model="gpt-4o",
-            messages=self.messages
-        )
+        response = self._call_llm(self.messages)
         
         assistant_message = response.choices[0].message.content
         
@@ -630,12 +733,14 @@ answer1 = conv.send_message("Hello")
 answer2 = conv.send_message("Tell me more")
 answer3 = conv.send_message("Thanks!")
 
+print(answer1)
+print(answer2)
+print(answer3)
 
 # =============================================================================
 # EXAMPLE 15: COST TRACKING
 # =============================================================================
 
-# Pricing per 1M tokens (update as needed)
 PRICING = {
     "gpt-4o": {"input": 5.00, "output": 15.00},
     "gpt-4o-mini": {"input": 0.15, "output": 0.60},
@@ -643,14 +748,21 @@ PRICING = {
     "text-embedding-3-small": {"input": 0.02, "output": 0},
 }
 
-def chat_with_cost_tracking(message: str, model: str = "gpt-4o") -> dict:
-    """Track cost and send to Splunk."""
-    telemetry = get_telemetry()
-    
+@trace_llm(model_name="gpt-4o", model_provider="openai")
+def _call_llm(message: str, model: str):
+    """Internal LLM call - returns full response."""
     response = client.chat.completions.create(
         model=model,
         messages=[{"role": "user", "content": message}]
     )
+    return response  # Return FULL response
+
+def chat_with_cost_tracking(message: str, model: str = "gpt-4o") -> dict:
+    """Track cost and send to Splunk."""
+    telemetry = get_telemetry()
+    
+    # Call LLM (traced by decorator)
+    response = _call_llm(message, model)
     
     # Calculate cost
     input_tokens = response.usage.prompt_tokens
@@ -661,10 +773,10 @@ def chat_with_cost_tracking(message: str, model: str = "gpt-4o") -> dict:
     output_cost = (output_tokens / 1_000_000) * pricing["output"]
     total_cost = input_cost + output_cost
     
-    # Send to Splunk
+    # Send additional cost span to Splunk
     telemetry.send_span(
-        span_type="LLM_WITH_COST",
-        name="chat_with_cost",
+        span_type="LLM_COST",
+        name="chat_cost_tracking",
         model_name=model,
         model_provider="openai",
         input_tokens=input_tokens,
@@ -681,6 +793,8 @@ def chat_with_cost_tracking(message: str, model: str = "gpt-4o") -> dict:
 
 # Usage:
 result = chat_with_cost_tracking("What is AI?", model="gpt-4o")
+print(f"Answer: {result['answer'][:100]}...")
+print(f"Cost: ${result['cost_usd']:.6f}")
 
 
 # =============================================================================
