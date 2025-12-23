@@ -46,14 +46,15 @@
       <title>Error Rate</title>
       <single>
         <search>
-          <query>`genai_traces_index` | `genai_error_rate`</query>
+          <query>`genai_traces_index` | `genai_error_rate`|fields error_rate</query>
           <earliest>$time_range.earliest$</earliest>
           <latest>$time_range.latest$</latest>
         </search>
         <option name="colorMode">block</option>
-        <option name="unit">%</option>
         <option name="rangeColors">["0x53a051","0xf8be34","0xdc4e41"]</option>
         <option name="rangeValues">[2,5]</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="unit">%</option>
         <option name="useColors">1</option>
       </single>
     </panel>

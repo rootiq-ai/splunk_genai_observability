@@ -1,0 +1,299 @@
+<form version="1.1" theme="dark">
+  <label>Hallucination Detection</label>
+  <description>Real-time monitoring of LLM response quality and hallucination detection</description>
+  <!-- ROW 1: Key Metrics -->
+  <!-- ROW 2: Trends -->
+  <!-- ROW 3: Sub-Scores Breakdown -->
+  <!-- ROW 4: By Workflow -->
+  <!-- ROW 5: High Risk Responses -->
+  <!-- ROW 6: Recent Activity -->
+  <!-- ROW 7: Alerts Summary -->
+  <fieldset submitButton="false">
+    <input type="time" token="time">
+      <label></label>
+      <default>
+        <earliest>-24h@h</earliest>
+        <latest>now</latest>
+      </default>
+    </input>
+  </fieldset>
+  <row>
+    <panel>
+      <title>Hallucination Rate</title>
+      <single>
+        <search>
+          <query>index=genai_traces span_type="HALLUCINATION_CHECK"
+| stats count(eval(is_hallucinated=1)) as hallucinated, count as total
+| eval rate=round((hallucinated/total)*100, 1)
+| fields rate</query>
+          <earliest>$time.earliest$</earliest>
+          <latest>$time.latest$</latest>
+        </search>
+        <option name="colorMode">block</option>
+        <option name="drilldown">none</option>
+        <option name="numberPrecision">0.0</option>
+        <option name="rangeColors">["0x53a051","0xf8be34","0xdc4e41"]</option>
+        <option name="rangeValues">[10,25]</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="unit">%</option>
+        <option name="useColors">1</option>
+      </single>
+    </panel>
+    <panel>
+      <title>Average Grounding Score</title>
+      <single>
+        <search>
+          <query>index=genai_traces span_type="HALLUCINATION_CHECK"
+| stats avg(hallucination_score) as avg_score
+| eval avg_score=round(avg_score*100, 1)
+| fields avg_score</query>
+          <earliest>$time.earliest$</earliest>
+          <latest>$time.latest$</latest>
+        </search>
+        <option name="colorMode">block</option>
+        <option name="drilldown">none</option>
+        <option name="numberPrecision">0.0</option>
+        <option name="rangeColors">["0xdc4e41","0xf8be34","0x53a051"]</option>
+        <option name="rangeValues">[50,75]</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="unit">%</option>
+        <option name="useColors">1</option>
+      </single>
+    </panel>
+    <panel>
+      <title>Total Checks (24h)</title>
+      <single>
+        <search>
+          <query>index=genai_traces span_type="HALLUCINATION_CHECK"
+| stats count as total</query>
+          <earliest>$time.earliest$</earliest>
+          <latest>$time.latest$</latest>
+        </search>
+        <option name="colorMode">block</option>
+        <option name="drilldown">none</option>
+        <option name="rangeColors">["0x006d9c"]</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="useColors">1</option>
+      </single>
+    </panel>
+    <panel>
+      <title>Avg Detection Time</title>
+      <single>
+        <search>
+          <query>index=genai_traces span_type="HALLUCINATION_CHECK"
+| stats avg(duration_ms) as avg_time
+| eval avg_time=round(avg_time, 1)
+| fields avg_time</query>
+          <earliest>$time.earliest$</earliest>
+          <latest>$time.latest$</latest>
+        </search>
+        <option name="colorMode">block</option>
+        <option name="drilldown">none</option>
+        <option name="rangeColors">["0x53a051","0xf8be34","0xdc4e41"]</option>
+        <option name="rangeValues">[50,200]</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="unit">ms</option>
+        <option name="useColors">1</option>
+      </single>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Grounding Score Trend</title>
+      <chart>
+        <search>
+          <query>index=genai_traces span_type="HALLUCINATION_CHECK"
+| timechart span=1h avg(hallucination_score) as "Avg Score", perc95(hallucination_score) as "P95 Score", perc5(hallucination_score) as "P5 Score"</query>
+          <earliest>$time.earliest$</earliest>
+          <latest>$time.latest$</latest>
+        </search>
+        <option name="charting.chart">area</option>
+        <option name="charting.chart.nullValueMode">connect</option>
+        <option name="charting.chart.showDataLabels">none</option>
+        <option name="charting.drilldown">none</option>
+        <option name="charting.legend.placement">bottom</option>
+        <option name="refresh.display">progressbar</option>
+      </chart>
+    </panel>
+    <panel>
+      <title>Hallucination Rate Trend</title>
+      <chart>
+        <search>
+          <query>index=genai_traces span_type="HALLUCINATION_CHECK"
+| timechart span=1h count(eval(is_hallucinated=1)) as "Hallucinated", count(eval(is_hallucinated=0)) as "Grounded"</query>
+          <earliest>$time.earliest$</earliest>
+          <latest>$time.latest$</latest>
+        </search>
+        <option name="charting.chart">column</option>
+        <option name="charting.chart.stackMode">stacked</option>
+        <option name="charting.drilldown">none</option>
+        <option name="charting.fieldColors">{"Hallucinated": 0xdc4e41, "Grounded": 0x53a051}</option>
+        <option name="charting.legend.placement">bottom</option>
+        <option name="refresh.display">progressbar</option>
+      </chart>
+    </panel>
+    <panel>
+      <title>Hallucination Rate by Workflow</title>
+      <chart>
+        <search>
+          <query>index=genai_traces span_type="HALLUCINATION_CHECK"
+| stats avg(hallucination_score) as avg_score, 
+        count(eval(is_hallucinated=1)) as hallucinated,
+        count as total 
+        by workflow_name
+| eval hall_rate=round((hallucinated/total)*100, 1)
+| sort -hall_rate
+| head 10</query>
+          <earliest>$time.earliest$</earliest>
+          <latest>$time.latest$</latest>
+        </search>
+        <option name="charting.chart">bar</option>
+        <option name="charting.drilldown">none</option>
+        <option name="charting.legend.placement">bottom</option>
+        <option name="refresh.display">progressbar</option>
+      </chart>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Sub-Scores Breakdown (Hybrid Method)</title>
+      <chart>
+        <search>
+          <query>index=genai_traces span_type="HALLUCINATION_CHECK" detection_method="hybrid"
+| stats avg(entity_score) as "Entity (35%)", 
+        avg(ngram_score) as "N-gram (25%)", 
+        avg(sentence_score) as "Sentence (25%)", 
+        avg(keyword_score) as "Keyword (15%)"
+| transpose
+| rename column as "Method", "row 1" as "Avg Score"</query>
+          <earliest>$time.earliest$</earliest>
+          <latest>$time.latest$</latest>
+        </search>
+        <option name="charting.chart">bar</option>
+        <option name="charting.drilldown">none</option>
+        <option name="charting.legend.placement">none</option>
+        <option name="refresh.display">progressbar</option>
+      </chart>
+    </panel>
+    <panel>
+      <title>Detection Method Distribution</title>
+      <chart>
+        <search>
+          <query>index=genai_traces span_type="HALLUCINATION_CHECK"
+| stats count by detection_method
+| sort -count</query>
+          <earliest>$time.earliest$</earliest>
+          <latest>$time.latest$</latest>
+        </search>
+        <option name="charting.chart">pie</option>
+        <option name="charting.drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </chart>
+    </panel>
+    <panel>
+      <title>Score Distribution</title>
+      <chart>
+        <search>
+          <query>index=genai_traces span_type="HALLUCINATION_CHECK"
+| eval score_bucket=case(
+    hallucination_score&gt;=0.9, "90-100% (Excellent)",
+    hallucination_score&gt;=0.7, "70-89% (Good)",
+    hallucination_score&gt;=0.5, "50-69% (Warning)",
+    hallucination_score&gt;=0.3, "30-49% (Poor)",
+    1=1, "0-29% (Critical)"
+)
+| stats count by score_bucket
+| sort -score_bucket</query>
+          <earliest>$time.earliest$</earliest>
+          <latest>$time.latest$</latest>
+        </search>
+        <option name="charting.chart">pie</option>
+        <option name="charting.drilldown">none</option>
+        <option name="charting.fieldColors">{"90-100% (Excellent)": 0x53a051, "70-89% (Good)": 0x7ec850, "50-69% (Warning)": 0xf8be34, "30-49% (Poor)": 0xf1813f, "0-29% (Critical)": 0xdc4e41}</option>
+        <option name="refresh.display">progressbar</option>
+      </chart>
+    </panel>
+    <panel>
+      <title>Detection Latency by Method</title>
+      <chart>
+        <search>
+          <query>index=genai_traces span_type="HALLUCINATION_CHECK"
+| stats avg(duration_ms) as "Avg",
+        max(duration_ms) as "Max",
+        perc95(duration_ms) as "P95"
+        by detection_method
+| sort detection_method</query>
+          <earliest>$time.earliest$</earliest>
+          <latest>$time.latest$</latest>
+        </search>
+        <option name="charting.chart">bar</option>
+        <option name="charting.drilldown">none</option>
+        <option name="charting.legend.placement">bottom</option>
+        <option name="refresh.display">progressbar</option>
+      </chart>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>⚠️ High Risk Responses (Score &lt; 50%)</title>
+      <table>
+        <search>
+          <query>index=genai_traces span_type="HALLUCINATION_CHECK" hallucination_score&lt;0.5
+| eval score_pct=round(hallucination_score*100, 1)."%"
+| table _time, workflow_name, score_pct, detection_method, explanation, unmatched_count
+| rename _time as "Time", workflow_name as "Workflow", score_pct as "Score", detection_method as "Method", explanation as "Explanation", unmatched_count as "Unverified"
+| sort -Time
+| head 20</query>
+          <earliest>$time.earliest$</earliest>
+          <latest>$time.latest$</latest>
+        </search>
+        <option name="count">10</option>
+        <option name="drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </table>
+    </panel>
+    <panel>
+      <title>Recent Hallucination Checks</title>
+      <table>
+        <search>
+          <query>index=genai_traces span_type="HALLUCINATION_CHECK"
+| eval score_pct=round(hallucination_score*100, 1)."%"
+| eval status=if(is_hallucinated=1, "⚠️ Hallucinated", "✓ Grounded")
+| table _time, workflow_name, status, score_pct, detection_method, duration_ms, matched_count, unmatched_count
+| rename _time as "Time", workflow_name as "Workflow", status as "Status", score_pct as "Score", detection_method as "Method", duration_ms as "Latency (ms)", matched_count as "Verified", unmatched_count as "Unverified"
+| sort -Time
+| head 50</query>
+          <earliest>$time.earliest$</earliest>
+          <latest>$time.latest$</latest>
+        </search>
+        <option name="count">15</option>
+        <option name="drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </table>
+    </panel>
+    <panel>
+      <title>Hourly Stats</title>
+      <table>
+        <search>
+          <query>index=genai_traces span_type="HALLUCINATION_CHECK"
+| bin _time span=1h
+| stats count as "Total Checks",
+        count(eval(is_hallucinated=1)) as "Hallucinated",
+        avg(hallucination_score) as "Avg Score",
+        avg(duration_ms) as "Avg Latency"
+        by _time
+| eval "Avg Score"=round('Avg Score'*100, 1)."%"
+| eval "Avg Latency"=round('Avg Latency', 1)."ms"
+| eval "Hall Rate"=round((Hallucinated/'Total Checks')*100, 1)."%"
+| sort -_time
+| head 24</query>
+          <earliest>$time.earliest$</earliest>
+          <latest>$time.latest$</latest>
+        </search>
+        <option name="count">10</option>
+        <option name="drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </table>
+    </panel>
+  </row>
+</form>
