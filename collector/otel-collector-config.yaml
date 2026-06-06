@@ -1,0 +1,83 @@
+# =============================================================================
+# OpenTelemetry Collector config for the GenAI Observability for Splunk app
+# -----------------------------------------------------------------------------
+# Pipeline:  app (OTLP) -> collector -> Splunk HEC (sourcetype genai:otel)
+#
+# The transform processor maps the gen_ai.* semantic-convention attributes onto
+# the flat field names the app's dashboards query, computes duration_ms and
+# is_error, and derives span_type from gen_ai.operation.name. Pair this with
+# splunk_app_changes/props.conf (stanza [genai:otel]).
+#
+# Run:
+#   otelcol-contrib --config otel-collector-config.yaml
+# (the transform processor + splunk_hec exporter ship in the *contrib* distro)
+# =============================================================================
+
+receivers:
+  otlp:
+    protocols:
+      http:
+        endpoint: 0.0.0.0:4318
+      grpc:
+        endpoint: 0.0.0.0:4317
+
+processors:
+  batch:
+    send_batch_size: 512
+    timeout: 5s
+
+  # Map semconv -> the app's flat schema, on span attributes (OTTL).
+  transform/genai:
+    error_mode: ignore
+    trace_statements:
+      - context: span
+        statements:
+          # duration + error flags
+          - set(attributes["duration_ms"], (span.end_time_unix_nano - span.start_time_unix_nano) / 1000000.0)
+          - set(attributes["is_error"], 1) where status.code == STATUS_CODE_ERROR
+          - set(attributes["is_error"], 0) where status.code != STATUS_CODE_ERROR
+          - set(attributes["status"], "ERROR") where status.code == STATUS_CODE_ERROR
+          - set(attributes["status"], "OK") where status.code != STATUS_CODE_ERROR
+          - set(attributes["error_message"], status.message) where status.code == STATUS_CODE_ERROR
+
+          # model + provider
+          - set(attributes["model_name"], attributes["gen_ai.request.model"]) where attributes["gen_ai.request.model"] != nil
+          - set(attributes["model_name"], attributes["gen_ai.response.model"]) where attributes["model_name"] == nil and attributes["gen_ai.response.model"] != nil
+          - set(attributes["model_provider"], attributes["gen_ai.provider.name"]) where attributes["gen_ai.provider.name"] != nil
+          - set(attributes["model_provider"], attributes["gen_ai.system"]) where attributes["model_provider"] == nil and attributes["gen_ai.system"] != nil
+
+          # token usage
+          - set(attributes["input_tokens"], attributes["gen_ai.usage.input_tokens"]) where attributes["gen_ai.usage.input_tokens"] != nil
+          - set(attributes["output_tokens"], attributes["gen_ai.usage.output_tokens"]) where attributes["gen_ai.usage.output_tokens"] != nil
+
+          # workflow + RAG + tool
+          - set(attributes["workflow_name"], attributes["gen_ai.workflow.name"]) where attributes["gen_ai.workflow.name"] != nil
+          - set(attributes["vector_store"], attributes["gen_ai.retrieval.vector_store"]) where attributes["gen_ai.retrieval.vector_store"] != nil
+          - set(attributes["documents_retrieved"], attributes["gen_ai.retrieval.documents_retrieved"]) where attributes["gen_ai.retrieval.documents_retrieved"] != nil
+          - set(attributes["relevance_score"], attributes["gen_ai.retrieval.relevance_score"]) where attributes["gen_ai.retrieval.relevance_score"] != nil
+          - set(attributes["tool_name"], attributes["gen_ai.tool.name"]) where attributes["gen_ai.tool.name"] != nil
+
+          # span_type from operation name
+          - set(attributes["span_type"], "LLM")        where attributes["gen_ai.operation.name"] == "chat" or attributes["gen_ai.operation.name"] == "text_completion" or attributes["gen_ai.operation.name"] == "generate_content"
+          - set(attributes["span_type"], "EMBEDDING")  where attributes["gen_ai.operation.name"] == "embeddings"
+          - set(attributes["span_type"], "RETRIEVER")  where attributes["gen_ai.operation.name"] == "retrieve"
+          - set(attributes["span_type"], "TOOL")       where attributes["gen_ai.operation.name"] == "execute_tool"
+          - set(attributes["span_type"], "AGENT")      where attributes["gen_ai.operation.name"] == "invoke_agent" or attributes["gen_ai.operation.name"] == "create_agent"
+          - set(attributes["span_type"], "CHAIN")      where attributes["gen_ai.operation.name"] == "chain"
+
+exporters:
+  splunk_hec/genai:
+    token: "${env:SPLUNK_HEC_TOKEN}"
+    endpoint: "${env:SPLUNK_HEC_URL}/services/collector"
+    source: "otel"
+    sourcetype: "genai:otel"
+    index: "genai_traces"
+    tls:
+      insecure_skip_verify: true   # set false + provide ca_file in production
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [transform/genai, batch]
+      exporters: [splunk_hec/genai]
