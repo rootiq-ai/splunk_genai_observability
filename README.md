@@ -66,7 +66,7 @@ collector/otel-collector-config.yaml
 ```
 python examples/otel_native_example.py
 ```
-2. ## Python SDK https://github.com/genai-telemetry/genai-telemetry
+2. ## Use Python SDK
 ###  Install Python SDK
 
 ```bash
