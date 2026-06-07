@@ -62,7 +62,7 @@ splunk restart
 ```
 collector/otel-collector-config.yaml
 ```
-### run example
+### example
 ```
 python examples/otel_native_example.py
 ```
