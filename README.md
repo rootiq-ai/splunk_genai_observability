@@ -48,7 +48,7 @@
 
 ## Quick Start
 
-### 1. Install the App
+### Install the App in Splunk Env
 
 Download from [Splunkbase](https://splunkbase.splunk.com/app/YOUR_APP_ID) or install manually:
 
@@ -57,13 +57,19 @@ tar -xzf splunk_genai_observability.tar.gz -C $SPLUNK_HOME/etc/apps/
 splunk restart
 ```
 
-### 2. Install Python SDK
+1. ## Use your existing OpenTelemetry pipeline 
+### set up collector : https://github.com/rootiq-ai/splunk_genai_observability/blob/main/collector/otel-collector-config.yaml
+```
+python examples/otel_native_example.py
+```
+2. ## Python SDK https://github.com/genai-telemetry/genai-telemetry
+###  Install Python SDK
 
 ```bash
 pip install genai-telemetry
 ```
 
-### 3. Instrument Your Code
+###  Instrument Your Code
 
 ```python
 ## Prerequisites
