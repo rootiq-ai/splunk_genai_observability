@@ -58,7 +58,11 @@ splunk restart
 ```
 
 1. ## Use your existing OpenTelemetry pipeline 
-### set up collector : https://github.com/rootiq-ai/splunk_genai_observability/blob/main/collector/otel-collector-config.yaml
+### set up collector
+```
+collector/otel-collector-config.yaml
+```
+### run example
 ```
 python examples/otel_native_example.py
 ```
